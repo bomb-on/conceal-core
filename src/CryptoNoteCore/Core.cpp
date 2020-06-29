@@ -8,6 +8,9 @@
 
 #include <sstream>
 #include <unordered_set>
+#include <boost/utility/value_init.hpp>
+#include <boost/range/combine.hpp>
+
 #include "../CryptoNoteConfig.h"
 #include "../Common/CommandLine.h"
 #include "../Common/Util.h"
@@ -622,6 +625,10 @@ std::vector<Transaction> core::getPoolTransactions() {
   return result;
 }
 
+std::list<CryptoNote::tx_memory_pool::TransactionDetails> core::getMemoryPool() const {
+	return m_mempool.getMemoryPool();
+}
+
 std::vector<Crypto::Hash> core::buildSparseChain() {
   assert(m_blockchain.getCurrentBlockchainHeight() != 0);
   return m_blockchain.buildSparseChain();
@@ -984,6 +991,21 @@ bool core::getTransactionsByPaymentId(const Crypto::Hash& paymentId, std::vector
   return true;
 }
 
+std::vector<Crypto::Hash> core::getTransactionHashesByPaymentId(const Crypto::Hash& paymentId) {
+  logger(DEBUGGING) << "getTransactionHashesByPaymentId request with paymentId " << paymentId;
+
+  std::vector<Crypto::Hash> blockchainTransactionHashes;
+  m_blockchain.getTransactionIdsByPaymentId(paymentId, blockchainTransactionHashes);
+
+  std::vector<Crypto::Hash> poolTransactionHashes;
+  m_mempool.getTransactionIdsByPaymentId(paymentId, poolTransactionHashes);
+
+  blockchainTransactionHashes.reserve(blockchainTransactionHashes.size() + poolTransactionHashes.size());
+  std::move(poolTransactionHashes.begin(), poolTransactionHashes.end(), std::back_inserter(blockchainTransactionHashes));
+
+  return blockchainTransactionHashes;
+}
+
 std::error_code core::executeLocked(const std::function<std::error_code()>& func) {
   std::lock_guard<decltype(m_mempool)> lk(m_mempool);
   LockedBlockchainStorage lbs(m_blockchain);
@@ -1070,12 +1092,40 @@ bool core::is_key_image_spent(const Crypto::KeyImage& key_im) {
   return m_blockchain.have_tx_keyimg_as_spent(key_im);
 }
 
+bool core::is_key_image_spent(const Crypto::KeyImage& key_im, uint32_t height) {
+  return m_blockchain.checkIfSpent(key_im, height);
+}
+
 bool core::addMessageQueue(MessageQueue<BlockchainMessage>& messageQueue) {
   return m_blockchain.addMessageQueue(messageQueue);
 }
 
 bool core::removeMessageQueue(MessageQueue<BlockchainMessage>& messageQueue) {
   return m_blockchain.removeMessageQueue(messageQueue);
+}
+
+bool core::getMixin(const Transaction& transaction, uint64_t& mixin) {
+  mixin = 0;
+  for (const TransactionInput& txin : transaction.inputs) {
+    if (txin.type() != typeid(KeyInput)) {
+      continue;
+    }
+    uint64_t currentMixin = boost::get<KeyInput>(txin).outputIndexes.size();
+    if (currentMixin > mixin) {
+      mixin = currentMixin;
+    }
+  }
+  return true;
+}
+
+bool core::getPaymentId(const Transaction& transaction, Crypto::Hash& paymentId) {
+  std::vector<TransactionExtraField> txExtraFields;
+  parseTransactionExtra(transaction.extra, txExtraFields);
+  TransactionExtraNonce extraNonce;
+  if (!findTransactionExtraFieldByType(txExtraFields, extraNonce)) {
+    return false;
+  }
+  return getPaymentIdFromTransactionExtraNonce(extraNonce.nonce, paymentId);
 }
 
 }

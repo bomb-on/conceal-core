@@ -26,6 +26,8 @@
 
 #include <Logging/LoggerMessage.h>
 
+#include "BlockchainExplorerData.h"
+
 namespace CryptoNote {
 
   struct core_stat_info;
@@ -73,6 +75,7 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
      virtual bool getBlocksByTimestamp(uint64_t timestampBegin, uint64_t timestampEnd, uint32_t blocksNumberLimit, std::vector<Block>& blocks, uint32_t& blocksNumberWithinTimestamps) override;
      virtual bool getPoolTransactionsByTimestamp(uint64_t timestampBegin, uint64_t timestampEnd, uint32_t transactionsNumberLimit, std::vector<Transaction>& transactions, uint64_t& transactionsNumberWithinTimestamps) override;
      virtual bool getTransactionsByPaymentId(const Crypto::Hash& paymentId, std::vector<Transaction>& transactions) override;
+     virtual std::vector<Crypto::Hash> getTransactionHashesByPaymentId(const Crypto::Hash& paymentId) override;
      virtual bool getOutByMSigGIndex(uint64_t amount, uint64_t gindex, MultisignatureOutput& out) override;
      virtual std::unique_ptr<IBlock> getBlock(const Crypto::Hash& blocksId) override;
      virtual bool handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& txHash, size_t blobSize, tx_verification_context& tvc, bool keptByBlock, uint32_t height) override;
@@ -127,11 +130,12 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
      virtual bool get_random_outs_for_amounts(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_response& res) override;
      void pause_mining() override;
      void update_block_template_and_resume_mining() override;
-     //Blockchain& get_blockchain_storage(){return m_blockchain;}
+     Blockchain& get_blockchain_storage(){ return m_blockchain; }
      //debug functions
      void print_blockchain(uint32_t start_index, uint32_t end_index);
      void print_blockchain_index();
      std::string print_pool(bool short_format);
+     std::list<CryptoNote::tx_memory_pool::TransactionDetails> getMemoryPool() const;
      void print_blockchain_outs(const std::string& file);
      virtual bool getPoolChanges(const Crypto::Hash& tailBlockId, const std::vector<Crypto::Hash>& knownTxsIds,
                                  std::vector<Transaction>& addedTxs, std::vector<Crypto::Hash>& deletedTxsIds) override;
@@ -148,6 +152,10 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
      uint64_t depositInterestAtHeight(size_t height) const;
 
      bool is_key_image_spent(const Crypto::KeyImage& key_im);
+     bool is_key_image_spent(const Crypto::KeyImage& key_im, uint32_t height);
+
+     static bool getPaymentId(const Transaction& transaction, Crypto::Hash& paymentId);
+     virtual bool getMixin(const Transaction& transaction, uint64_t& mixin);
 
    private:
      bool add_new_tx(const Transaction& tx, const Crypto::Hash& tx_hash, size_t blob_size, tx_verification_context& tvc, bool keeped_by_block, uint32_t height);
@@ -159,8 +167,6 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
      //check correct values, amounts and all lightweight checks not related with database
      bool check_tx_semantic(const Transaction& tx, bool keeped_by_block, uint32_t &height);
      //check if tx already in memory pool or in main blockchain
-
-
 
      bool check_tx_ring_signature(const KeyInput& tx, const Crypto::Hash& tx_prefix_hash, const std::vector<Crypto::Signature>& sig);
      bool is_tx_spendtime_unlocked(uint64_t unlock_time);
