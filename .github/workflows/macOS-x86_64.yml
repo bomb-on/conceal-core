@@ -1,4 +1,4 @@
-name: macOS
+name: macOS-x86_64
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
       - "*"
 
 jobs:
-  build-macos:
-    name: macOS
-    runs-on: macos-latest
+  build-macos-x86_64:
+    name: macOS-x86_64
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@master
 
@@ -17,7 +17,7 @@ jobs:
         run: |
           build_folder="build/"
           ccx_version=$(echo ${{ github.ref }} | sed 's|refs/tags/||')
-          release_name="ccx-cli-macOS-v$ccx_version"
+          release_name="ccx-cli-macos-x86_64-v$ccx_version"
           brew install gcc boost
           mkdir "$build_folder"
           cd "$build_folder"
