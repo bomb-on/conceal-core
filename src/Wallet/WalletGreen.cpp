@@ -1909,15 +1909,21 @@ namespace cn
     return bounds;
   }
 
-  size_t WalletGreen::transfer(const TransactionParameters &transactionParameters, crypto::SecretKey &transactionSK)
+ size_t WalletGreen::transfer(const TransactionParameters &transactionParameters, crypto::SecretKey &transactionSK)
   {
-    platform_system::EventLock lk(m_readyEvent);
+    try {
+      platform_system::EventLock lk(m_readyEvent);  
 
-    throwIfNotInitialized();
-    throwIfTrackingMode();
-    throwIfStopped();
+        throwIfNotInitialized();
+        throwIfTrackingMode();
+        throwIfStopped();
 
-    return doTransfer(transactionParameters, transactionSK, true);
+        return doTransfer(transactionParameters, transactionSK, true);
+    }
+    catch (const std::exception& ) {
+        throw;
+    }
+
   }
 
   void WalletGreen::prepareTransaction(
@@ -4010,29 +4016,28 @@ namespace cn
     return m_walletsContainer.get<RandomAccessIndex>().begin()->spendSecretKey == NULL_SECRET_KEY ? WalletTrackingMode::TRACKING : WalletTrackingMode::NOT_TRACKING;
   }
 
-  size_t WalletGreen::createFusionTransaction(
+   size_t WalletGreen::createFusionTransaction(
       uint64_t threshold, uint64_t mixin,
       const std::vector<std::string> &sourceAddresses,
       const std::string &destinationAddress)
   {
-    platform_system::EventLock lk(m_readyEvent);
     size_t id = WALLET_INVALID_TRANSACTION_ID;
+    try {
+        platform_system::EventLock lk(m_readyEvent);
 
-    throwIfNotInitialized();
-    throwIfTrackingMode();
-    throwIfStopped();
+        throwIfNotInitialized();
+        throwIfTrackingMode();
+        throwIfStopped();
 
-    validateSourceAddresses(sourceAddresses);
-    validateChangeDestination(sourceAddresses, destinationAddress, true);
+        validateSourceAddresses(sourceAddresses);
+        validateChangeDestination(sourceAddresses, destinationAddress, true);
 
-    const size_t MAX_FUSION_OUTPUT_COUNT = 8;
-
-    uint64_t fusionTreshold = m_currency.defaultDustThreshold();
-
-    if (threshold <= fusionTreshold)
-    {
-      throw std::system_error(make_error_code(error::THRESHOLD_TOO_LOW));
-    }
+        const size_t MAX_FUSION_OUTPUT_COUNT = 8;
+        uint64_t fusionTreshold = m_currency.defaultDustThreshold();
+        
+        if (threshold <= fusionTreshold) {
+            throw std::system_error(make_error_code(error::THRESHOLD_TOO_LOW));
+        }
 
     if (m_walletsContainer.get<RandomAccessIndex>().size() == 0)
     {
@@ -4092,14 +4097,18 @@ namespace cn
 
     if (fusionInputs.size() < m_currency.fusionTxMinInputCount())
     {
-      throw std::system_error(make_error_code(error::MINIMUM_INPUT_COUNT));
+        throw std::system_error(make_error_code(error::MINIMUM_INPUT_COUNT));
     }
     if (fusionTransaction->getOutputCount() == 0)
     {
-      throw std::system_error(make_error_code(error::WRONG_AMOUNT));
+        throw std::system_error(make_error_code(error::WRONG_AMOUNT));
     }
     id = validateSaveAndSendTransaction(*fusionTransaction, {}, true, true);
     return id;
+    }
+    catch (const std::system_error& ) {
+        throw;
+    }
   }
 
   WalletGreen::ReceiverAmounts WalletGreen::decomposeFusionOutputs(const AccountPublicAddress &address, uint64_t inputsAmount) const
