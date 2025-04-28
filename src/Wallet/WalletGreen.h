@@ -30,7 +30,8 @@ class WalletGreen : public IObservableImpl<IWalletObserver, IWallet>,
                     public ITransfersObserver,
                     public IBlockchainSynchronizerObserver,
                     public ITransfersSynchronizerObserver,
-                    public IFusionManager
+                    public IFusionManager,
+                    public std::enable_shared_from_this<WalletGreen>
 {
 public:
   WalletGreen(platform_system::Dispatcher &dispatcher, const Currency &currency, INode &node, logging::ILogger &logger, uint32_t transactionSoftLockTime = 1);

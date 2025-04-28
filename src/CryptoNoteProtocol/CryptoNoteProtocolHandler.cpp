@@ -153,8 +153,9 @@ std::vector<std::string> CryptoNoteProtocolHandler::all_connections()
 {
   std::vector<std::string> connections;
   connections.clear();
-  m_p2p->for_each_connection([&connections](const CryptoNoteConnectionContext &cntxt, [[maybe_unused]] PeerIdType peer_id)
+  m_p2p->for_each_connection([&connections](const CryptoNoteConnectionContext &cntxt, PeerIdType peer_id)
                              {
+                               (void)peer_id;
                                std::string ipAddress = common::ipAddressToString(cntxt.m_remote_ip);
                                connections.push_back(ipAddress);
                              });
