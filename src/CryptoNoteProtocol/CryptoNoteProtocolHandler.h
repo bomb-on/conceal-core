@@ -8,9 +8,10 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 
 #include <Common/ObserverManager.h>
-
+#include "../CryptoNoteConfig.h"
 #include "CryptoNoteCore/ICore.h"
 
 #include "CryptoNoteProtocol/CryptoNoteProtocolDefinitions.h"
@@ -118,5 +119,9 @@ namespace cn
 
     std::atomic<size_t> m_peersCount;
     tools::ObserverManager<ICryptoNoteProtocolObserver> m_observerManager;
+
+    std::atomic<uint32_t> m_maxObjectCount;
+    uint64_t getAvailableMemory() const;
+    uint32_t calculateMaxObjectCount() const;
   };
 }

@@ -20,6 +20,15 @@
 #include "CryptoNoteCore/Currency.h"
 #include "CryptoNoteCore/VerificationContext.h"
 #include "P2p/LevinProtocol.h"
+#include "../CryptoNoteConfig.h"
+#include <cstdint>  // for UINT64_MAX
+#ifdef __linux__
+#include <sys/sysinfo.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include <psapi.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
 
 using namespace logging;
 using namespace common;
@@ -53,8 +62,10 @@ CryptoNoteProtocolHandler::CryptoNoteProtocolHandler(const Currency &currency, p
   m_observedHeight(0),
   m_peersCount(0),
   logger(log, "protocol"),
-  m_dispatcher(dispatcher)
+  m_dispatcher(dispatcher),
+  m_maxObjectCount(calculateMaxObjectCount())
   {
+    logger(INFO) << "Max object count: " << m_maxObjectCount;
     if (!m_p2p)
       m_p2p = &m_p2p_stub;
   }
@@ -393,9 +404,17 @@ int CryptoNoteProtocolHandler::handle_notify_new_transactions(int command, NOTIF
 int CryptoNoteProtocolHandler::handle_request_get_objects(int command, NOTIFY_REQUEST_GET_OBJECTS::request &arg, CryptoNoteConnectionContext &context)
 {
   logger(logging::TRACE) << context << "NOTIFY_REQUEST_GET_OBJECTS";
-  if(arg.blocks.size() > COMMAND_RPC_GET_OBJECTS_MAX_COUNT || arg.txs.size() > COMMAND_RPC_GET_OBJECTS_MAX_COUNT)
+  uint32_t maxObjects = m_maxObjectCount.load();
+  const size_t totalObjects = arg.blocks.size() + arg.txs.size();
+
+  logger(INFO) << "DEBUG: Request for " << totalObjects << " objects (limit: " << maxObjects << ")";
+
+
+  if (totalObjects > maxObjects)
   {
-    logger(logging::ERROR) << context << "GET_OBJECTS_MAX_COUNT exceeded blocks: " << arg.blocks.size() << " txes: " << arg.txs.size();
+    logger(logging::ERROR) << context << "Requested objects count exceeds limit of " 
+                          << maxObjects << ": blocks " << arg.blocks.size() 
+                          << " + txs " << arg.txs.size() << " = " << totalObjects;
     context.m_state = CryptoNoteConnectionContext::state_shutdown;
     return 1;
   }
@@ -1122,4 +1141,36 @@ int CryptoNoteProtocolHandler::doPushLiteBlock(NOTIFY_NEW_LITE_BLOCK::request ar
   return 1;
 }
 
+uint64_t CryptoNoteProtocolHandler::getAvailableMemory() const {
+  #ifdef _WIN32
+      MEMORYSTATUSEX memInfo;
+      memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+      if (GlobalMemoryStatusEx(&memInfo)) {
+          return memInfo.ullAvailPhys;
+      }
+      logger(ERROR) << "Failed to get Windows memory info: " << GetLastError();
+      return 0;
+  #else
+      struct sysinfo memInfo;
+      if (sysinfo(&memInfo) == 0) {
+          uint64_t available = memInfo.freeram;
+          available *= memInfo.mem_unit;
+          return available;
+      }
+      logger(ERROR) << "Failed to get system memory info: " << errno;
+      return 0;
+  #endif
+  }
+  
+  uint32_t CryptoNoteProtocolHandler::calculateMaxObjectCount() const {
+      uint64_t availableMB = getAvailableMemory() / (1024 * 1024);
+        
+      if (availableMB < cn::parameters::MIN_MEMORY_MB) {
+          logger(logging::WARNING) << "Memory check failed or small value, using fallback max objects";
+          return cn::parameters::FALLBACK_MAX_OBJECTS;
+      }
+  
+      // If we have enough memory, use max objects which would be a key value to prevent DDOS attack
+      return cn::parameters::ABSOLUTE_MAX_OBJECTS;
+  }
 }; // namespace cn
