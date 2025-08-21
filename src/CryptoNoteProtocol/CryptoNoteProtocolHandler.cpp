@@ -24,10 +24,9 @@
 #include <cstdint>  // for UINT64_MAX
 #ifdef __linux__
 #include <sys/sysinfo.h>
-#elif defined(_WIN32) || defined(_WIN64)
-#include <psapi.h>
 #elif defined(__APPLE__)
-#include <sys/sysctl.h>
+#include <mach/mach.h>
+#include <mach/mach_host.h>
 #endif
 
 using namespace logging;
@@ -1142,25 +1141,33 @@ int CryptoNoteProtocolHandler::doPushLiteBlock(NOTIFY_NEW_LITE_BLOCK::request ar
 }
 
 uint64_t CryptoNoteProtocolHandler::getAvailableMemory() const {
-  #ifdef _WIN32
-      MEMORYSTATUSEX memInfo;
-      memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-      if (GlobalMemoryStatusEx(&memInfo)) {
-          return memInfo.ullAvailPhys;
-      }
-      logger(ERROR) << "Failed to get Windows memory info: " << GetLastError();
-      return 0;
-  #else
+  #ifdef __linux__
+      // Keep what works for Linux
       struct sysinfo memInfo;
       if (sysinfo(&memInfo) == 0) {
           uint64_t available = memInfo.freeram;
           available *= memInfo.mem_unit;
           return available;
       }
-      logger(ERROR) << "Failed to get system memory info: " << errno;
+      logger(ERROR) << "Failed to get Linux memory info: " << errno;
       return 0;
+  #elif defined(__APPLE__)
+      // macOS: use modern Mach API
+      vm_size_t pageSize;
+      if (host_page_size(mach_host_self(), &pageSize) == KERN_SUCCESS) {
+          vm_statistics64_data_t vmStats;
+          mach_msg_type_number_t infoCount = HOST_VM_INFO64_COUNT;
+          if (host_statistics64(mach_host_self(), HOST_VM_INFO64, 
+                               (host_info64_t)&vmStats, &infoCount) == KERN_SUCCESS) {
+              uint64_t available = vmStats.free_count * pageSize;
+              return available;
+          }
+      }
+      return 0;
+  #else
+  return 0;
   #endif
-  }
+}
   
   uint32_t CryptoNoteProtocolHandler::calculateMaxObjectCount() const {
       uint64_t availableMB = getAvailableMemory() / (1024 * 1024);
