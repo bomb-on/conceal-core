@@ -121,7 +121,5 @@ namespace cn
     tools::ObserverManager<ICryptoNoteProtocolObserver> m_observerManager;
 
     std::atomic<uint32_t> m_maxObjectCount;
-    uint64_t getAvailableMemory() const;
-    uint32_t calculateMaxObjectCount() const;
   };
 }

@@ -22,12 +22,6 @@
 #include "P2p/LevinProtocol.h"
 #include "../CryptoNoteConfig.h"
 #include <cstdint>  // for UINT64_MAX
-#ifdef __linux__
-#include <sys/sysinfo.h>
-#elif defined(__APPLE__)
-#include <mach/mach.h>
-#include <mach/mach_host.h>
-#endif
 
 using namespace logging;
 using namespace common;
@@ -62,9 +56,8 @@ CryptoNoteProtocolHandler::CryptoNoteProtocolHandler(const Currency &currency, p
   m_peersCount(0),
   logger(log, "protocol"),
   m_dispatcher(dispatcher),
-  m_maxObjectCount(calculateMaxObjectCount())
+  m_maxObjectCount(cn::parameters::ABSOLUTE_MAX_OBJECTS)
   {
-    logger(INFO) << "Max object count: " << m_maxObjectCount;
     if (!m_p2p)
       m_p2p = &m_p2p_stub;
   }
@@ -1140,44 +1133,4 @@ int CryptoNoteProtocolHandler::doPushLiteBlock(NOTIFY_NEW_LITE_BLOCK::request ar
   return 1;
 }
 
-uint64_t CryptoNoteProtocolHandler::getAvailableMemory() const {
-  #ifdef __linux__
-      // Keep what works for Linux
-      struct sysinfo memInfo;
-      if (sysinfo(&memInfo) == 0) {
-          uint64_t available = memInfo.freeram;
-          available *= memInfo.mem_unit;
-          return available;
-      }
-      logger(ERROR) << "Failed to get Linux memory info: " << errno;
-      return 0;
-  #elif defined(__APPLE__)
-      // macOS: use modern Mach API
-      vm_size_t pageSize;
-      if (host_page_size(mach_host_self(), &pageSize) == KERN_SUCCESS) {
-          vm_statistics64_data_t vmStats;
-          mach_msg_type_number_t infoCount = HOST_VM_INFO64_COUNT;
-          if (host_statistics64(mach_host_self(), HOST_VM_INFO64, 
-                               (host_info64_t)&vmStats, &infoCount) == KERN_SUCCESS) {
-              uint64_t available = vmStats.free_count * pageSize;
-              return available;
-          }
-      }
-      return 0;
-  #else
-  return 0;
-  #endif
-}
-  
-  uint32_t CryptoNoteProtocolHandler::calculateMaxObjectCount() const {
-      uint64_t availableMB = getAvailableMemory() / (1024 * 1024);
-        
-      if (availableMB < cn::parameters::MIN_MEMORY_MB) {
-          logger(logging::WARNING) << "Memory check failed or small value, using fallback max objects";
-          return cn::parameters::FALLBACK_MAX_OBJECTS;
-      }
-  
-      // If we have enough memory, use max objects which would be a key value to prevent DDOS attack
-      return cn::parameters::ABSOLUTE_MAX_OBJECTS;
-  }
 }; // namespace cn

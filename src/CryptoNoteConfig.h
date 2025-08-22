@@ -143,12 +143,7 @@ namespace cn
 		const char MINER_CONFIG_FILE_NAME[] = "miner_conf.json";
 		
 		// Memory management constants
-		const uint32_t ABSOLUTE_MAX_OBJECTS = 1200;     // can safely be handled memory wise, but a limiting factor to prevent DDOS attack
-		const uint32_t FALLBACK_MAX_OBJECTS = 800;     // Default when memory check fails
-		const uint64_t MIN_MEMORY_MB = 150;           // Minimum memory required for handling fallback max objects
-
-		// Memory management constants validation
-		static_assert(ABSOLUTE_MAX_OBJECTS > FALLBACK_MAX_OBJECTS, "Maximum object count must be greater than Fallback");
+		const uint32_t ABSOLUTE_MAX_OBJECTS = 1000;     // can safely be handled memory wise, but a limiting factor to prevent DDOS attack
 	} // namespace parameters
 
 	const uint64_t START_BLOCK_REWARD = (UINT64_C(5000) * parameters::POINT);  // start reward (Consensus I)
