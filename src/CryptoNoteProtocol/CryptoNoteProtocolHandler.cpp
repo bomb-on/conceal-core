@@ -20,7 +20,6 @@
 #include "CryptoNoteCore/Currency.h"
 #include "CryptoNoteCore/VerificationContext.h"
 #include "P2p/LevinProtocol.h"
-#include "../CryptoNoteConfig.h"
 #include <cstdint>  // for UINT64_MAX
 
 using namespace logging;
@@ -56,7 +55,7 @@ CryptoNoteProtocolHandler::CryptoNoteProtocolHandler(const Currency &currency, p
   m_peersCount(0),
   logger(log, "protocol"),
   m_dispatcher(dispatcher),
-  m_maxObjectCount(cn::parameters::ABSOLUTE_MAX_OBJECTS)
+  m_maxObjectCount(cn::COMMAND_RPC_GET_OBJECTS_MAX_COUNT)
   {
     if (!m_p2p)
       m_p2p = &m_p2p_stub;
@@ -396,7 +395,7 @@ int CryptoNoteProtocolHandler::handle_notify_new_transactions(int command, NOTIF
 int CryptoNoteProtocolHandler::handle_request_get_objects(int command, NOTIFY_REQUEST_GET_OBJECTS::request &arg, CryptoNoteConnectionContext &context)
 {
   logger(logging::TRACE) << context << "NOTIFY_REQUEST_GET_OBJECTS";
-  uint32_t maxObjects = m_maxObjectCount.load();
+  size_t maxObjects = m_maxObjectCount.load();
   const size_t totalObjects = arg.blocks.size() + arg.txs.size();
 
   logger(INFO) << "DEBUG: Request for " << totalObjects << " objects (limit: " << maxObjects << ")";

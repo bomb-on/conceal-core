@@ -120,6 +120,6 @@ namespace cn
     std::atomic<size_t> m_peersCount;
     tools::ObserverManager<ICryptoNoteProtocolObserver> m_observerManager;
 
-    std::atomic<uint32_t> m_maxObjectCount;
+    std::atomic<size_t> m_maxObjectCount;
   };
 }

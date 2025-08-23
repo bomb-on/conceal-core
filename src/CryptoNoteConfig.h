@@ -142,8 +142,6 @@ namespace cn
 		const char CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME[] = "blockchainindices.dat";
 		const char MINER_CONFIG_FILE_NAME[] = "miner_conf.json";
 		
-		// Memory management constants
-		const uint32_t ABSOLUTE_MAX_OBJECTS = 1000;     // can safely be handled memory wise, but a limiting factor to prevent DDOS attack
 	} // namespace parameters
 
 	const uint64_t START_BLOCK_REWARD = (UINT64_C(5000) * parameters::POINT);  // start reward (Consensus I)
