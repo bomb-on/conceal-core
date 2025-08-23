@@ -511,7 +511,11 @@ namespace cn
             if (!loader.loaded())
             {
               logger(WARNING, BRIGHT_YELLOW) << " No actual blockchain cache found, rebuilding internal structures";
-              rebuildCache();
+              if (!rebuildCache())
+              {
+                logger(ERROR, BRIGHT_RED) << "Failed to rebuild cache";
+                return false;
+              }
             }
           }
           
@@ -542,7 +546,11 @@ namespace cn
           logger(WARNING, BRIGHT_YELLOW) << "Attempting to rebuild cache after load error";
           try
           {
-            rebuildCache();
+            if (!rebuildCache())
+            {
+              logger(ERROR, BRIGHT_RED) << "Failed to rebuild cache";
+              return false;
+            }
           }
           catch (const std::exception&)
           {
