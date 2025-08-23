@@ -141,7 +141,7 @@ namespace cn
 		const char P2P_NET_DATA_FILENAME[] = "p2pstate.bin";
 		const char CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME[] = "blockchainindices.dat";
 		const char MINER_CONFIG_FILE_NAME[] = "miner_conf.json";
-
+		
 	} // namespace parameters
 
 	const uint64_t START_BLOCK_REWARD = (UINT64_C(5000) * parameters::POINT);  // start reward (Consensus I)
