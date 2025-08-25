@@ -210,9 +210,10 @@ namespace cn
 
 	// Seed Nodes
 	const std::initializer_list<const char *> SEED_NODES = {
-		"185.58.227.32:15000", // UK
-		"185.35.64.209:15000",	 // France 
-		"94.177.245.107:15000"	 // Germany
+	//  "seed1.conceal.network:15000", To be reactivate
+		"seed2.conceal.network:15000",	 // Germany
+		"seed3.conceal.network:15000", // UK
+		"explorer.conceal.network:15000", // Explorer
 	};
 
 	const std::initializer_list<const char *> TESTNET_SEED_NODES = {
