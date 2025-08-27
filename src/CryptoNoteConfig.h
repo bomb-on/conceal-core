@@ -214,7 +214,8 @@ namespace cn
 	  "seed2.conceal.network:15000",	
 	  "seed3.conceal.network:15000",
 	  "seed4.conceal.network:15000",
-	  "seed5.conceal.network:15000"
+	  "seed5.conceal.network:15000",
+	  "seed6.conceal.network:15000"
 
 	};
 
