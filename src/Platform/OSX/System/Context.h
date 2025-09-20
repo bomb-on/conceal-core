@@ -33,6 +33,22 @@ extern	void		makecontext(uctx*, void(*)(void), intptr_t);
 extern	int		getmcontext(mctx*);
 extern	void		setmcontext(const mctx*);
 
+#ifdef __aarch64__
+// ARM64 register context
+struct mcontext {
+  long	mc_x[29];    // x0-x28 general purpose registers
+  long	mc_fp;       // x29 frame pointer
+  long	mc_lr;       // x30 link register
+  long	mc_sp;       // stack pointer
+  long	mc_pc;       // program counter
+  long	mc_cpsr;     // current program status register
+  
+  // Floating point state (simplified)
+  long	mc_fpstate[64];
+  long	mc_spare[8];
+};
+#else
+// x86_64 register context
 struct mcontext {
   /*
    * The first 20 fields must match the definition of
@@ -79,6 +95,7 @@ struct mcontext {
   long	mc_fpstate[64];
   long	mc_spare[8];
 };
+#endif
 
 struct ucontext {
   /*
