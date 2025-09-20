@@ -44,8 +44,12 @@
 #endif
 
 #if defined(__aarch64__)
+#if defined(__ARM_NEON__) && defined(__linux__)
 #include <asm/hwcap.h>
+#endif
+#ifdef __linux__
 #include <sys/auxv.h>
+#endif
 #define HAS_ARM_HW
 #endif
 

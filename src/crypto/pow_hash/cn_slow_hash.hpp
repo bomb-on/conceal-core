@@ -101,7 +101,16 @@ inline bool check_avx2()
  */
 inline bool hw_check_aes()
 {
+#ifdef __linux__
 	return (getauxval(AT_HWCAP) & HWCAP_AES) != 0;
+#elif defined(__APPLE__)
+	// On Apple Silicon (M1/M2), AES is always available
+	// Apple's documentation states that AES instructions are supported on all Apple Silicon processors
+	return true;
+#else
+	// For other ARM platforms, assume no AES support for safety
+	return false;
+#endif
 }
 #endif
 

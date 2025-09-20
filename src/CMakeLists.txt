@@ -28,6 +28,11 @@ if(MSVC OR MINGW)
   file(GLOB_RECURSE System System/* Platform/Windows/System/*)
 elseif(APPLE)
   file(GLOB_RECURSE System System/* Platform/OSX/System/*)
+  # Remove x86-64 assembly file on ARM64
+  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    list(REMOVE_ITEM System ${CMAKE_CURRENT_SOURCE_DIR}/Platform/OSX/System/asm.s)
+    message(STATUS "Excluded x86-64 assembly file on ARM64 architecture")
+  endif()
 else()
   file(GLOB_RECURSE System System/* Platform/Linux/System/*)
 endif()
@@ -37,6 +42,15 @@ source_group("" FILES $${Common} ${crypto} ${CryptoNoteCore} ${CryptoNoteProtoco
 add_library(BlockchainExplorer STATIC ${BlockchainExplorer})
 add_library(Common STATIC ${Common})
 add_library(crypto STATIC ${crypto})
+
+# Set AES compilation flags for ARM hardware cryptonight code on Apple Silicon
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+  set_source_files_properties(
+    crypto/pow_hash/cn_slow_hash_hard_arm.cpp
+    PROPERTIES COMPILE_FLAGS "-march=armv8-a+crypto -mcpu=apple-m1"
+  )
+  message(STATUS "Applied AES crypto flags for ARM hardware on Apple Silicon")
+endif()
 add_library(CryptoNoteCore STATIC ${CryptoNoteCore})
 add_library(Http STATIC ${Http})
 add_library(InProcessNode STATIC ${InProcessNode})
